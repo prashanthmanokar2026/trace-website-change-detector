@@ -1,47 +1,32 @@
 # Trace
 
-**Know what changed. See why it matters.**
+A website change detector for the VinnovateIT web development assignment.
+Add a public webpage, choose how often to check it, and compare saved versions when
+its text changes. You can watch one part of a page and ignore sections such as ads
+or counters.
 
-Trace monitors public webpages, preserves changed versions and shows the evidence
-behind an alert. Built by Prashanth Manokar for the VinnovateIT recruitment assignment.
+![Trace dashboard](docs/screenshots/dashboard.png)
 
-![Trace monitor overview](docs/screenshots/dashboard.png)
+## What it does
 
-**Submission repository:** [https://github.com/prashumanocg/trace-website-change-detector](https://github.com/prashumanocg/trace-website-change-detector)
+- Checks pages every 15 minutes to 24 hours using Chromium.
+- Saves text and a screenshot when the compared text changes.
+- Lets you select watched and ignored elements from a screenshot.
+- Shows a version timeline, text differences, side-by-side screenshots and highlighted image differences.
+- Queues email and Discord alerts for changes that pass your sensitivity setting.
+- Records failed and blocked checks separately from content changes.
 
-## Current delivery status
+There is one owner account. Visitors can view the included examples, but cannot
+access the owner's monitors. The examples use fictional pages rendered in Chromium;
+they are labelled as examples and paused after their captures are generated.
 
-The application runs locally with a React interface, FastAPI API, durable SQLite
-queue, Playwright capture, region picker, version comparison and notification
-outbox. Public visitors see only explicitly generated demonstration monitors;
-owner monitors require authentication, including their screenshots.
+## Run locally
 
-**Source-code submission; no hosted service is required or provisioned.** SMTP/Discord
-provider delivery requires credentials and an authorized test. The Docker/Linux
-isolation configuration must pass its deployment gate before public use.
-**Verification:** 48 tests and 3 subtests passed; production frontend build passed; npm audit reported zero known vulnerabilities.
-See [the evidence audit](docs/AUDIT.md) and [current status](docs/STATUS.md).
-
-## Features
-
-- Public HTTP(S) monitors, 15–1440 minute intervals, manual checks, pause/resume/delete.
-- A separate worker with persistent jobs, leases, retries and per-host spacing.
-- Compatible due monitors share a browser render, with individual filters afterward.
-- Real page screenshots and normalized text; unchanged checks do not duplicate versions.
-- Optional marked-element noise filters, sensitivity and cumulative significance.
-- Click a captured page element to watch/ignore it; selectors and match counts can be previewed.
-- Version timeline, text additions/removals, side-by-side screenshots and a pixel highlight view.
-- Durable SMTP/Discord outbox, event deduplication, delivery history and explicit uncertain state.
-- Private owner workspace with read-only public fixture demonstration.
-
-![Version comparison](docs/screenshots/comparison.png)
-
-## Quick start
-
-Requirements: Python **3.12**, Node **24**, npm and a supported Playwright machine.
-For a fresh clone, run the following from the repository root:
+You need **Python 3.12**, **Node.js 24** and npm. Clone this repository and run:
 
 ```sh
+git clone https://github.com/prashumanocg/trace-website-change-detector.git
+cd trace-website-change-detector
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock
 .venv/bin/python -m playwright install chromium
@@ -53,136 +38,62 @@ PYTHONPATH=backend:. .venv/bin/python scripts/demo.py
 .venv/bin/python scripts/run.py
 ```
 
-On Linux, Chromium also needs system libraries. Use
-`.venv/bin/python -m playwright install --with-deps chromium` during installation,
-or the supplied container image. Native local execution is for development; it
-is not the production network-isolation boundary.
+On Linux, use `playwright install --with-deps chromium` in the installation step
+to install the browser's system dependencies too. These commands use a macOS/Linux shell.
 
-Open **http://127.0.0.1:8000**. Use that exact address, matching `TRACE_BASE_URL`.
-Click **Owner sign in** using the password you entered locally. Password setup
-stores an scrypt hash in `.env`; restart the API after changing it.
+Open **http://127.0.0.1:8000** and choose **Owner sign in**. Use the password you
+entered during setup. The password hash stays in the ignored `.env` file.
 
-The runner starts the API, proxy, monitoring worker and notifier. Ctrl-C shuts
-these down together. The computer must remain awake for local scheduled checks.
-Do not run a second copy on the same ports or data directory.
+Keep the runner open and the computer awake for scheduled checks. Ctrl-C stops it.
+After changing `.env`, restart the runner. This is a local app; no hosting account
+or paid service is needed to review the submission.
 
-To recreate only the generated public fixtures:
+## Try it
 
-```sh
-PYTHONPATH=backend:. .venv/bin/python scripts/demo.py --reset-demo
-```
+1. Explore an example monitor and compare its two versions.
+2. Sign in and add a public URL with a name and check interval.
+3. After the first capture, open **Regions & settings**. Select an element to watch
+   or ignore, then preview the text before saving.
+4. Use **Check log** to see whether a check succeeded, failed or was blocked.
 
-The three fixture pages are clearly labelled examples. Their screenshots are
-rendered in real Chromium; they are not actual scholarships, releases or events.
-The fixture transport exists only in the explicit demo/test code. Production
-requests cannot turn it on. Generated monitors are paused after capture.
+Changing the selection or filters starts a new baseline. Some websites block
+browser automation or disallow checks through robots.txt.
 
-## How to use Trace
+![Comparing versions](docs/screenshots/comparison.png)
 
-1. Sign in and choose **Add monitor**. Use a public page that permits monitoring.
-2. The initial capture establishes the baseline. It does not send a change alert.
-3. Open **Regions & settings** to select an element in the screenshot or choose
-   it from the accessible element list. Add it to watched or ignored regions.
-4. Choose **Preview compared text** to inspect exactly what remains and verify
-   selector match counts. Save settings; changed filters start a new baseline.
-5. Compare saved versions using the history list or the two version selectors.
-6. Open **Check log** to distinguish unchanged content from errors and access blocks.
+## How it works
 
-### Noise filters
+React and TypeScript handle the interface. FastAPI handles requests, owner sessions
+and monitor settings. SQLite stores monitors, jobs, text, screenshots and pending
+notifications. A separate worker checks for due jobs and opens pages in Playwright.
 
-The presets remove **explicitly marked elements**: `time`/`[data-timestamp]`,
-`[data-counter]`, `[data-ad]`/`.advertisement`/`[aria-label="Advertisement"]`,
-`[data-rotating-banner]` and `[data-random-token]`. They are opt-in and visible in
-preview. For different markup, pick an ignored region yourself. Ordinary numbers,
-prices and deadlines are retained. Do not enable timestamp removal when a `time`
-element contains the deadline you want to monitor.
+The worker extracts visible text, applies the selected filters, normalizes whitespace
+and hashes the result. If the hash matches the previous version, no new version is
+saved. Sensitivity decides whether a saved change should also produce an alert.
+Small edits are compared against the last significant version so they can accumulate.
 
-The hash is SHA-256 of normalized, visible selected text after exclusions. Unicode
-NFC and whitespace normalization are applied. Images alone do not trigger a version.
-Sensitivity affects alerts, not version storage. Significant changes are measured
-against the last significant text, so small edits can accumulate. A → B → A saves
-three chronological versions. Settings revisions are recorded explicitly.
+Checks due for the same URL can share one browser capture. Failed jobs have bounded
+retries, and requests to the same host are spaced apart. A validating proxy rejects
+private network destinations. The local runner is for development; see the deployment
+notes before exposing it to the internet.
+
+Noise presets target marked elements such as `time`, `[data-counter]`, `[data-ad]`,
+`[data-rotating-banner]` and `[data-random-token]`. They do not automatically recognise
+every ad or timestamp. Use ignored regions for other markup. Prices and ordinary
+numbers are retained; avoid filtering a `time` element containing a deadline you need.
 
 ## Notifications
 
-Populate SMTP and/or Discord variables in `.env` directly; do not put secrets in
-chat, source files or the browser. Restart the API and notifier, then enable the
-channel in **Notifications**. Enabling it authorizes automatic alerts for future
-meaningful changes. Each channel starts disabled.
+Email and Discord are optional. Set the relevant values from `.env.example` in your
+local `.env`, restart, and enable the channel in **Notifications**. SMTP uses STARTTLS.
+Never commit passwords or webhook URLs.
 
-SMTP uses STARTTLS (normally port 587). Discord URLs must use the exact
-`https://discord.com/api/webhooks/<id>/<token>` form. Redirects are not followed.
-Discord mentions are disabled. The alert contains actual changed-text excerpts
-and a comparison link using `TRACE_BASE_URL`.
-
-Events are queued atomically with the version, unique per version/channel. Events
-are spaced by at least ten minutes per monitor/channel without discarding queued
-changes. Known failures have bounded retries. A timeout or an interrupted send
-can mean the provider accepted the message; these become **uncertain**, requiring
-recipient inspection before an owner chooses **Retry delivery**. Exactly-once
-provider delivery is not guaranteed.
-
-Local transport tests do not establish real inbox/Discord delivery. No external
-message was sent during implementation.
-
-## Architecture
-
-```mermaid
-flowchart LR
-  UI[React interface] --> API[FastAPI: auth and monitor API]
-  API --> DB[(SQLite: metadata, queue, captures, outbox)]
-  WORKER[One scheduler / browser worker] --> DB
-  WORKER --> CHROME[Sandboxed Chromium]
-  CHROME --> PROXY[Validating egress proxy]
-  PROXY --> WEB[Public webpages]
-  NOTIFY[Separate notification process] --> DB
-  NOTIFY --> PROVIDERS[SMTP / Discord]
-```
-
-React/TypeScript/Vite provides the interaction layer; Python keeps the backend
-approachable. SQLite WAL and explicit transactions keep queue claims and version
-writes atomic. Screenshots are stored as **SQLite blobs** to keep their lifecycle
-atomic with each version, avoiding orphan files. This intentionally revises the
-Phase 0 file-storage proposal. The whole app fits on one persistent host.
-
-BeautifulSoup/SoupSieve select from an inert serialized **rendered DOM**, including
-visibility pruning and element identities collected by Chromium. They do not
-replace browser rendering. The original comparison foundation remains in
-`backend/detector/core.py`; its early standalone store is retained for its tests.
-The application uses the versioned schema in `backend/traceapp/db.py` and a
-separate `trace.sqlite` file. No existing foundation database is overwritten.
-
-Jobs use unique monitor IDs, transactional claims, expiring leases and revision
-tokens. Pausing, changing settings or deleting a monitor invalidates pending
-results. Startup coalesces missed schedules rather than replaying every missed
-interval. One browser worker is enforced with a process lock.
-
-## Security and limits
-
-See [deployment and security boundaries](docs/DEPLOYMENT.md) before hosting.
-
-- Owner writes require a session, same-origin request and CSRF token. Cookies are
-  HttpOnly/SameSite=Strict and Secure when the public base URL is HTTPS.
-- Public reads cannot access private monitor records or captures.
-- The proxy validates all resolved addresses and connects to the selected numeric
-  IP, addressing the DNS check/connection race. Private/loopback/link-local/reserved
-  destinations, unsafe schemes/ports and URL credentials are rejected.
-- Chromium has service workers, WebSockets, downloads, non-GET/HEAD requests and
-  unnecessary media/font fetches blocked. Browser environment omits app secrets.
-- Fixed 1280px viewport; screenshot height capped at 4000px; 50-second capture limit;
-  100 routed requests; 12MB per proxy connection and 32MB aggregate per minute.
-- One render at a time; minimum 15-second top-level domain spacing by default;
-  proxy connections to a host are spaced at least 250ms; Retry-After is bounded to a day.
-- robots.txt is cached for an hour: allow on 404, parse on 200, block on other
-  statuses/redirects or verification failure. This conservative policy may reject sites.
-- Up to 100 owner/demo monitors through the API, 50 versions per monitor by default,
-  200 recent checks per monitor and a 512MB capture payload budget. Undelivered alerts
-  may retain both referenced versions beyond the per-monitor count.
-- The API rate-limits requests and enforces a 20KB write-body limit.
+Alerts are saved with their change event and sent by a separate process. If a send
+has an unknown outcome, it is marked **uncertain** rather than retried automatically,
+because the provider may already have accepted it. Check the recipient before retrying.
+Real inbox and Discord delivery have not been tested; the transport tests use local adapters.
 
 ## Tests
-
-Build the frontend before browser tests:
 
 ```sh
 npm run build --prefix frontend
@@ -190,64 +101,37 @@ npm run build --prefix frontend
 npm audit --prefix frontend
 ```
 
-Tests cover real Chromium fixture rendering, production proxy/renderer integration,
-HTTP/CAPTCHA/robots handling, private redirects, DNS answers, queue leases/retries,
-shared rendering with request counts, CRUD/auth/CSRF, screenshots, noise filtering,
-version history, outbox behavior and owner UI interactions at desktop/mobile widths.
-The UI test temporarily uses port 8011 and its own database/password.
+The last local run passed **48 tests and 3 subtests**. Tests cover filtering, version
+storage, the job queue, shared captures, access controls, browser rendering and the
+main interface flows. The production frontend build also passed.
+See [testing notes](docs/AUDIT.md) for the checks and their limits.
 
-See `docs/AUDIT.md` for the current observed counts and remaining verification.
+## Limits
 
-## Storage, backup and recovery
+- Text changes trigger versions; image-only changes do not.
+- Screenshots stop at 4000 pixels. The picker supports the main page's regular DOM,
+  not shadow roots or cross-origin frames.
+- HTTP errors and recognised CAPTCHA pages are rejected. An unfamiliar error page
+  returning HTTP 200 can still be mistaken for changed content.
+- Image highlights include layout shifts as well as changed content.
+- This is a single-owner, single-worker app. Shared-fetch tests are not a multi-user load test.
+- Daily digests, RSS, charts and AI summaries are not included.
+- Docker configuration is included, but has not been tested on a running Linux host.
 
-Default storage: ignored `data/trace.sqlite` plus SQLite WAL files. `TRACE_DATA`
-can change the directory. Never put it in Git or an ephemeral hosting filesystem.
-Schema version 1 initializes idempotently, followed by the transactional version 2 outbox comparison migration; unsupported versions fail explicitly.
-Future schema changes require numbered migrations and backup first.
+## Project files
+
+- `frontend/src/` — interface and styles
+- `backend/traceapp/` — API, browser capture, queue, notifications and database
+- `backend/detector/` — text comparison functions and the original standalone store
+- `tests/` and `backend/tests/` — browser, API and unit tests
+- `scripts/` — local runner, example data, password setup and backups
+
+Captures and sessions are stored in ignored `data/trace.sqlite`. To create a consistent backup:
 
 ```sh
 PYTHONPATH=backend .venv/bin/python scripts/backup.py /safe/private/path/trace-backup.sqlite
 ```
 
-The backup API produces a consistent snapshot while the app is running. Backups
-include private captures and sessions. To restore: stop all Trace processes, move
-the current data directory to a private backup location, create a fresh data
-directory, copy the backup as `trace.sqlite`, delete restored sessions with SQLite,
-and restart. Never copy a live `.sqlite` file alone while ignoring its WAL.
+Backups contain private data too. Keep them out of Git.
 
-Deletion cascades through versions, checks, jobs and outbox. SQLite can reuse freed
-pages; file size may not shrink until a maintenance `VACUUM` while the app is stopped.
-
-## Deployment and submission
-
-Follow [the single-host deployment guide](docs/DEPLOYMENT.md). Do not expose the
-native development runner or proxy to the internet. The Compose configuration
-separates the browser network from the API and the public network on the same host.
-
-The recruitment submission is this public source repository. Reviewers can run it
-locally using the quick start above; no hosting account or paid service is needed.
-Linux isolation verification is required only before a future public deployment.
-Real notification delivery requires privately configured provider credentials.
-
-- [Five-minute demo and interview notes](docs/INTERVIEW.md)
-- [Requirement audit](docs/AUDIT.md)
-- [Implementation status](docs/STATUS.md)
-
-## Known limitations and next improvements
-
-- No image-only change trigger, OCR, login monitoring or CAPTCHA bypass.
-- Picker supports top-level light DOM only. Cross-origin frames and shadow roots
-  are unsupported; generated selectors can break when page structure changes.
-- Captures cover the first 4000 vertical pixels; visible text can include content
-  farther down. Choose a supported region near the top for matching visual evidence.
-- Pixel highlights can include layout shifts; they are not semantic visual analysis.
-- CAPTCHA detection is heuristic. HTTP-200 outage pages without known challenge
-  phrases can still look like content; no universal classifier is claimed.
-- Robots restrictions, resource budgets and site bot protection can prevent capture.
-- Single owner, single worker, single persistent host. The 200-subscription test is
-  a controlled fetch-sharing test, not a production load certification.
-- Native Mac operation lacks the network isolation of the intended Linux deployment.
-- Daily digests, AI, RSS, browser extensions and charts are intentionally absent.
-
-Future priorities: verified Linux deployment, broader selector robustness, optional
-visual-only triggers and richer provider delivery handling after the core submission.
+[Optional deployment and recovery](docs/DEPLOYMENT.md) · [Project status](docs/STATUS.md)

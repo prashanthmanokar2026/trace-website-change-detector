@@ -1,9 +1,9 @@
-# Requirement audit — 13 October 2026
+# Testing notes — 13 October 2026
 
-This is an evidence audit, not a declaration of production readiness. External
-provider delivery and deployed network isolation remain open gates.
+These notes record what was tested and what still needs checking. Real notification
+delivery and Linux deployment have not been tested.
 
-## Observed verification
+## Checks completed
 
 - Original comparison/persistence tests were rerun before changes: 15 passed.
 - A fresh source copy and fresh Python environment installed `requirements.lock`;
@@ -17,11 +17,12 @@ provider delivery and deployed network isolation remain open gates.
   were checked. Real UI screenshots are in `docs/screenshots/`.
 - Docker Compose configuration was validated with the official standalone Compose
   binary v5.6.0, whose release SHA-256 was checked. No daemon/container execution occurred.
-- No real email/Discord message, public repository, deployment or form submission occurred.
+- The source repository is public. No real email/Discord message was sent, no hosted
+  app was deployed, and the recruitment form was not submitted.
 
 ## Official requirements
 
-| Requirement | Classification | Evidence and boundaries |
+| Requirement | Status | Notes |
 |---|---|---|
 | URL, name, 15 min–24 h interval | Implemented and tested | Pydantic constraints, API validation test, UI create flow |
 | Headless rendering | Implemented and tested | Real Chromium fixture renders, actual public-page smoke capture |
@@ -38,9 +39,9 @@ provider delivery and deployed network isolation remain open gates.
 | Public deployment | Not implemented | Hosting configuration prepared; no paid account/server/domain provisioned |
 | Public GitHub repository | Published | https://github.com/prashumanocg/trace-website-change-detector |
 
-## Additional engineering gates
+## Other checks
 
-| Gate | Classification | Evidence and boundaries |
+| Area | Status | Notes |
 |---|---|---|
 | Shared compatible fetches | Implemented and tested | 200 subscriptions: one browser render and one actual fixture request; individual persistence. Not a 200-user load test |
 | CAPTCHA/outage distinction | Partially implemented | Production renderer test handles HTTP 500, known challenge phrase and robots denial. Unknown HTTP-200 outage content remains a heuristic limitation |
@@ -54,7 +55,7 @@ provider delivery and deployed network isolation remain open gates.
 | Accessibility | Partially implemented | Labelled controls, focus, keyboard picker alternative, native dialog, responsive checks. No comprehensive assistive-technology audit |
 | Bonuses | Not implemented | Daily digest, AI, extension, RSS and charts intentionally deferred |
 
-## Weakest aspects remaining
+## Remaining limitations
 
 1. **Deployed isolation is unverified.** Compose syntax validation cannot prove Linux
    firewall, namespaces or Chromium sandbox behavior. Run the supplied isolation
@@ -75,9 +76,8 @@ provider delivery and deployed network isolation remain open gates.
 - Preserved both ends of queued alert comparisons during retention cleanup.
 - Serialized schema/WAL initialization with a file lock and transaction to fix the concurrent first-start race exposed by the regression test.
 
-## Next external actions
+## Local configuration
 
-No secrets should be pasted into chat. Owner password setup is interactive and local.
-SMTP/Discord credentials belong in ignored server configuration. Source publication is authorized. Hosting is outside the source-only submission
-scope. A future deployment and real provider delivery still require their documented
-verification. Reviewers can run the application and example captures locally.
+Set the owner password using the local setup script. Keep SMTP/Discord credentials
+in the ignored .env file. Hosting is optional; reviewers can run the application
+and example captures using the README.
