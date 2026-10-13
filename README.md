@@ -7,6 +7,8 @@ behind an alert. Built by Prashanth Manokar for the VinnovateIT recruitment assi
 
 ![Trace monitor overview](docs/screenshots/dashboard.png)
 
+**Submission repository:** [https://github.com/prashumanocg/trace-website-change-detector](https://github.com/prashumanocg/trace-website-change-detector)
+
 ## Current delivery status
 
 The application runs locally with a React interface, FastAPI API, durable SQLite

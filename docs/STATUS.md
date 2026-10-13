@@ -14,7 +14,7 @@
 
 ## Verified
 
-- **48 tests passed, 3 subtests passed** in the final full run (19.49s).
+- **48 tests passed, 3 subtests passed** in the latest full run (20.23s).
 - One non-failing Starlette/httpx TestClient deprecation warning remains.
 - Frontend TypeScript check and Vite production build passed.
 - npm audit: **0 known vulnerabilities** at verification time.
@@ -33,7 +33,7 @@
 
 ## Submission and optional setup
 
-- The user authorized public GitHub publication. Account access is being verified.
+- Public source repository: [https://github.com/prashumanocg/trace-website-change-detector](https://github.com/prashumanocg/trace-website-change-detector).
 - Submission is source-only. Hosting is not required; no paid services will be used.
 - For owner use, set a password locally with `scripts/set_password.py` and restart.
 - A future public deployment must pass Docker/Linux isolation and HTTPS checks.
