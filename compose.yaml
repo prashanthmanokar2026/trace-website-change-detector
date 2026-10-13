@@ -1,0 +1,93 @@
+x-app: &app
+  build: .
+  image: trace:local
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs: ["/tmp:size=256m,mode=1777"]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  pids_limit: 128
+
+services:
+  api:
+    <<: *app
+    environment:
+      TRACE_BASE_URL: ${TRACE_BASE_URL:?Set public HTTPS base URL}
+      FORWARDED_ALLOW_IPS: '*'
+      TRACE_OWNER_HASH: ${TRACE_OWNER_HASH:?Set owner password hash}
+      TRACE_SMTP_HOST: ${TRACE_SMTP_HOST:-}
+      TRACE_EMAIL_FROM: ${TRACE_EMAIL_FROM:-}
+      TRACE_EMAIL_TO: ${TRACE_EMAIL_TO:-}
+      TRACE_DISCORD_WEBHOOK: ${TRACE_DISCORD_WEBHOOK:-}
+    volumes: ["trace_data:/data"]
+    networks: [frontend]
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "python", "-c", "from traceapp.db import connect; c=connect(); c.__enter__().execute('SELECT 1'); c.__exit__(None,None,None)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  worker:
+    <<: *app
+    command: ["python", "-m", "traceapp.worker"]
+    environment:
+      TRACE_BASE_URL: ${TRACE_BASE_URL}
+      TRACE_PROXY: http://proxy:8899
+      TRACE_RETENTION: ${TRACE_RETENTION:-50}
+      TRACE_DOMAIN_DELAY: ${TRACE_DOMAIN_DELAY:-15}
+    volumes: ["trace_data:/data"]
+    networks: [browser]
+    depends_on: [proxy, api]
+    security_opt: ["no-new-privileges:true", "seccomp=./deploy/seccomp_profile.json"]
+    pids_limit: 256
+    shm_size: 256m
+    mem_limit: 1g
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time; from traceapp.db import connect; c=connect(); row=c.__enter__().execute(\"SELECT value FROM meta WHERE key='worker_heartbeat'\").fetchone(); assert row and time.time()-float(row[0])<180"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+  proxy:
+    <<: *app
+    command: ["python", "-m", "traceapp.proxy"]
+    environment:
+      TRACE_PROXY_BIND: 0.0.0.0
+    networks: [browser, outbound]
+    mem_limit: 192m
+  notifier:
+    <<: *app
+    command: ["python", "-m", "traceapp.worker", "--notifications"]
+    environment:
+      TRACE_BASE_URL: ${TRACE_BASE_URL}
+      TRACE_SMTP_HOST: ${TRACE_SMTP_HOST:-}
+      TRACE_SMTP_PORT: ${TRACE_SMTP_PORT:-587}
+      TRACE_SMTP_USER: ${TRACE_SMTP_USER:-}
+      TRACE_SMTP_PASSWORD: ${TRACE_SMTP_PASSWORD:-}
+      TRACE_EMAIL_FROM: ${TRACE_EMAIL_FROM:-}
+      TRACE_EMAIL_TO: ${TRACE_EMAIL_TO:-}
+      TRACE_DISCORD_WEBHOOK: ${TRACE_DISCORD_WEBHOOK:-}
+    volumes: ["trace_data:/data"]
+    networks: [outbound]
+    depends_on: [api]
+    mem_limit: 192m
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      TRACE_DOMAIN: ${TRACE_DOMAIN:?Set a real domain}
+    volumes: ["./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy_data:/data", "caddy_config:/config"]
+    networks: [frontend, outbound]
+    mem_limit: 128m
+networks:
+  browser:
+    internal: true
+  frontend:
+    internal: true
+  outbound: {}
+volumes:
+  trace_data: {}
+  caddy_data: {}
+  caddy_config: {}
