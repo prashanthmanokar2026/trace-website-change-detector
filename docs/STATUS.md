@@ -2,7 +2,7 @@
 
 Updated 13 October 2026.
 
-The source is published at [prashumanocg/trace-website-change-detector](https://github.com/prashumanocg/trace-website-change-detector).
+The source is published at [prashanthmanokar2026/trace-website-change-detector](https://github.com/prashanthmanokar2026/trace-website-change-detector).
 The submission runs locally. There is no hosted service or paid infrastructure.
 
 The interface, owner login, monitoring worker, region selection, version comparisons

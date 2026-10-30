@@ -25,7 +25,7 @@ they are labelled as examples and paused after their captures are generated.
 You need **Python 3.12**, **Node.js 24** and npm. Clone this repository and run:
 
 ```sh
-git clone https://github.com/prashumanocg/trace-website-change-detector.git
+git clone https://github.com/prashanthmanokar2026/trace-website-change-detector.git
 cd trace-website-change-detector
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock
