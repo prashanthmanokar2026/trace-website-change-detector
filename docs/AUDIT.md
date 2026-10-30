@@ -37,7 +37,7 @@ delivery and Linux deployment have not been tested.
 | Timeline and status dashboard | Implemented and tested | Connected UI, actual DB records, logs, last checked/changed and pause states |
 | Pause/resume/delete/manual checks | Implemented and tested | API/queue paths, browser pause and delete cancellation, DB deletion cascade. Manual checks share rate limits |
 | Public deployment | Not implemented | Hosting configuration prepared; no paid account/server/domain provisioned |
-| Public GitHub repository | Published | https://github.com/prashumanocg/trace-website-change-detector |
+| Public GitHub repository | Published | https://github.com/prashanthmanokar2026/trace-website-change-detector |
 
 ## Other checks
 
